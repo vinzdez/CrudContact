@@ -22,8 +22,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -63,7 +65,15 @@ class MainActivity : ComponentActivity() {
 fun NameEmailInputScreen(viewModel: ContactViewModel) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
+    var id by remember { mutableLongStateOf(0) }
     val contactList by viewModel.contacts.collectAsState()
+    val editingContact by viewModel.editingContact.collectAsState()
+
+    LaunchedEffect(editingContact) {
+        name = editingContact?.name ?: ""
+        email = editingContact?.email ?: ""
+        id = editingContact?.id ?: 0
+    }
 
     Column(modifier = Modifier.padding(15.dp)) {
         // Name Input
@@ -90,14 +100,23 @@ fun NameEmailInputScreen(viewModel: ContactViewModel) {
         Button(
             onClick = {
                 if (name.isNotBlank() && email.isNotBlank()) {
-                    viewModel.addUpdateContact(name, email)
+                    if (editingContact != null) {
+                        editingContact?.let {
+                            viewModel.updateContact(name, email)
+
+                        }
+                    } else {
+                        viewModel.addUpdateContact(name, email)
+                    }
+
                     name = ""
                     email = ""
                 }
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Add")
+            val btnLabel = if (editingContact == null) "Add" else "Update"
+            Text(btnLabel)
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -123,7 +142,7 @@ fun NameEmailInputScreen(viewModel: ContactViewModel) {
                             .padding(4.dp)
                     ) {
                         IconButton(onClick = {
-
+                            viewModel.startEditing(contact)
                         }) {
                             Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Blue)
                         }

@@ -15,6 +15,8 @@ class ContactViewModel(private val repository: ContactRepository) :
     private val _contacts = MutableStateFlow<List<Contact>>(emptyList())
     val contacts: StateFlow<List<Contact>> = _contacts.asStateFlow()
 
+    private val _editingContact = MutableStateFlow<Contact?>(null)
+    val editingContact: StateFlow<Contact?> = _editingContact.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -33,10 +35,31 @@ class ContactViewModel(private val repository: ContactRepository) :
         }
     }
 
+    fun updateContact(name: String, email: String) {
+        viewModelScope.launch {
+            val currentContact = _editingContact.value
+            if (currentContact != null) {
+                val updatedContact = currentContact.copy(name = name, email = email)
+                viewModelScope.launch {
+                    repository.addUpdateContact(updatedContact)
+                    resetEditing()
+                }
+            }
+        }
+    }
+
     fun deleteContact(contact: Contact) {
         viewModelScope.launch {
             repository.deleteContact(contact.id)
         }
+    }
+
+    fun startEditing(contact: Contact) {
+        _editingContact.value = contact
+    }
+
+    private fun resetEditing() {
+        _editingContact.value = null
     }
 
 }
